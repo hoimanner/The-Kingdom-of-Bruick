@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Kingdom of Bruick</title>
+    <style>
+        body {
+            background-color: #e0f7fa;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border: 2px solid #00796b;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #00796b;
+            text-align: center;
+        }
+        p {
+            line-height: 1.5;
+        }
+        .button {
+            background-color: #00796b;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            display: block;
+            width: calc(100% - 24px); /* Adjust for margin */
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .button:hover {
+            background-color: #004d40;
+            transform: scale(1.05);
+        }
+        .status {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f1f8e9;
+            border-radius: 5px;
+            border-left: 5px solid #388e3c;
+        }
+        .inventory {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #00796b;
+        }
+        #shopDisplay {
+            display: none;
+            border-top: 2px dashed #00796b;
+            padding-top: 10px;
+            margin-top: 20px;
+        }
+        #game-text {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #00796b;
+            border-radius: 5px;
+            background-color: #e0f7fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>The Kingdom of Bruick</h1>
+        <p>Welcome to the Kingdom of Bruick! Fight enemies to gain gold and buy new potions! More updates like boss battles and spells coming soon if this gets popular.</p>
+        <p><b>Once a fight is over, use the buttons below. The fight ends in one turn. Attack, Escape, and Heal won't work after a fight is over. To buy health potions, press "Visit Shop" after making a purchase.</b></p>
+        
+        <div class="status">
+            <p>Player: <span id="player-name">Unknown</span>, Age: <span id="player-age">0</span></p>
+            <p>HP: <span id="hp">25</span></p>
+            <p>Gold: <span id="gold">50</span></p>
+            <p>Healing Potions: <span id="healing-potions">1</span></p>
+        </div>
+        
+        <div id="game-text">What will you do?</div>
+        
+        <button class="button" id="adventureButton">Adventure</button>
+        <button class="button" id="shopButton">Visit Shop</button>
+        <div id="shopDisplay"></div>
+    </div>
+
+    <script>
+        let playerStats = {
+            hp: 25,
+            maxHp: 25,
+            gold: 50,
+            healingPotions: 1
+        };
+
+        const enemies = [
+            "Mighty Slime",
+            "Ferocious Bat",
+            "Cunning Fox",
+            "Angry Hedgehog",
+            "Sneaky Bandit",
+            "Curious Imp",
+            "Fierce Squirrel",
+            "Dreaded Goblin"
+        ];
+
+        const playerNames = [
+            "Eldrin", "Aria", "Thorne", "Fiona", "Milo", 
+            "Lyra", "Jasper", "Elena", "Finn", "Seraphina"
+        ];
+
+        let currentMonster = {};
+        let playerName = "";
+        let playerAge = 0;
+
+        document.getElementById('adventureButton').onclick = adventure;
+        document.getElementById('shopButton').onclick = visitShop;
+
+        function generatePlayerDetails() {
+            playerName = playerNames[Math.floor(Math.random() * playerNames.length)];
+            playerAge = Math.floor(Math.random() * 20) + 15;
+            document.getElementById('player-name').textContent = playerName;
+            document.getElementById('player-age').textContent = playerAge;
+        }
+
+        window.onload = generatePlayerDetails;
+
+        function adventure() {
+            const gameText = document.getElementById('game-text');
+            currentMonster.name = enemies[Math.floor(Math.random() * enemies.length)];
+            currentMonster.hp = Math.floor(Math.random() * 10) + 5;
+            
+            gameText.innerHTML = `You encounter a ${currentMonster.name}! Fight or escape?`;
+            combat();
+        }
+
+        function combat() {
+            const gameText = document.getElementById('game-text');
+            const combatButtons = `
+                <button class="button" id="attackButton">Attack</button>
+                <button class="button" id="escapeButton">Escape</button>
+                <button class="button" id="usePotionButton">Use Healing Potion</button>`;
+            gameText.innerHTML += `<br>${combatButtons}`;
+            
+            document.getElementById('attackButton').onclick = function() {
+                const damage = Math.floor(Math.random() * 6) + 3;
+                currentMonster.hp -= damage;
+                gameText.innerHTML += `<br>You attack the ${currentMonster.name} for ${damage} damage!`;
+                
+                if (currentMonster.hp <= 0) {
+                    gameText.innerHTML += `<br>You defeated the ${currentMonster.name}!`;
+                    playerStats.gold += 10;
+                    updateStats();
+                    disableCombatButtons();
+                    returnToMain();
+                } else {
+                    enemyAttack();
+                }
+            };
+
+            document.getElementById('escapeButton').onclick = function() {
+                if (Math.random() < 0.5) {
+                    gameText.innerHTML += `<br>You successfully escaped from the ${currentMonster.name}!`;
+                    disableCombatButtons();
+                    returnToMain();
+                } else {
+                    const monsterDamage = Math.floor(Math.random() * 4) + 1;
+                    playerStats.hp -= monsterDamage;
+                    gameText.innerHTML += `<br>Your escape failed! The ${currentMonster.name} hits you for ${monsterDamage} damage!`;
+                    checkGameOver();
+                }
+            };
+
+            document.getElementById('usePotionButton').onclick = function() {
+                useHealingPotion();
+            };
+        }
+
+        function enemyAttack() {
+            const monsterDamage = Math.floor(Math.random() * 4) + 1;
+            playerStats.hp -= monsterDamage;
+            const gameText = document.getElementById('game-text');
+            gameText.innerHTML += `<br>The ${currentMonster.name} attacks you for ${monsterDamage} damage!`;
+            checkGameOver();
+        }
+
+        function useHealingPotion() {
+            if (playerStats.healingPotions > 0) {
+                playerStats.hp = Math.min(playerStats.maxHp, playerStats.hp + 10);
+                playerStats.healingPotions--;
+                const gameText = document.getElementById('game-text');
+                gameText.innerHTML += `<br>You used a healing potion! Your HP is now ${playerStats.hp}.`;
+                updateStats();
+            } else {
+                document.getElementById('game-text').innerHTML += `<br>You have no healing potions left!`;
+            }
+        }
+
+        function visitShop() {
+            const gameText = document.getElementById('game-text');
+            gameText.innerHTML = `Welcome to the Shop! You have ${playerStats.gold} gold.<br>`;
+            const shopButtons = `
+                <button class="button" id="buyPotionButton">Buy Healing Potion (10 Gold)</button>
+                <button class="button" id="leaveShopButton">Leave Shop</button>`;
+            document.getElementById('shopDisplay').innerHTML = shopButtons;
+            document.getElementById('shopDisplay').style.display = 'block';
+
+            document.getElementById('buyPotionButton').onclick = function() {
+                if (playerStats.gold >= 10) {
+                    playerStats.gold -= 10;
+                    playerStats.healingPotions++;
+                    gameText.innerHTML += `<br>You bought a healing potion! You now have ${playerStats.healingPotions}.`;
+                    updateStats();
+                } else {
+                    gameText.innerHTML += `<br>You don't have enough gold!`;
+                }
+            };
+
+            document.getElementById('leaveShopButton').onclick = function() {
+                gameText.innerHTML = `You left the shop.`;
+                document.getElementById('shopDisplay').style.display = 'none'; // Hide shop display
+                returnToMain();
+            };
+        }
+
+        function updateStats() {
+            document.getElementById('hp').textContent = playerStats.hp;
+            document.getElementById('gold').textContent = playerStats.gold;
+            document.getElementById('healing-potions').textContent = playerStats.healingPotions;
+        }
+
+        function checkGameOver() {
+            if (playerStats.hp <= 0) {
+                document.getElementById('game-text').innerHTML += `<br>You have been defeated! Game over.`;
+                disableCombatButtons();
+                returnToMain();
+            }
+        }
+
+        function returnToMain() {
+            const gameText = document.getElementById('game-text');
+            gameText.innerHTML += `<br>What will you do next?`;
+            disableCombatButtons();
+        }
+
+        function disableCombatButtons() {
+            const buttons = document.querySelectorAll('.button');
+            buttons.forEach(button => {
+                button.style.display = 'none';
+            });
+        }
+    </script>
+</body>
+</html>
