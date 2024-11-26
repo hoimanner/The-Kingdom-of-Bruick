@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <div id="shopDisplay"></div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Kingdom of Bruick (v2)</title>
+    <style>
+        body {
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border: 2px solid #00796b;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #00796b;
+            text-align: center;
+        }
+        p {
+            line-height: 1.5;
+        }
+        .button {
+            background-color: #00796b;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+            display: block;
+            width: calc(100% - 24px);
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .button:hover {
+            background-color: #004d40;
+            transform: scale(1.05);
+        }
+        .status {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f1f8e9;
+            border-radius: 5px;
+            border-left: 5px solid #388e3c;
+        }
+        #shopDisplay {
+            display: none;
+            border-top: 2px dashed #00796b;
+            padding-top: 10px;
+            margin-top: 20px;
+        }
+        #game-text {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #00796b;
+            border-radius: 5px;
+            background-color: #e0f7fa;
+        }
+        .button-container {
+            border: 2px solid #004d40;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            margin: 10px 0;
+        }
+        .boss {
+            color: red;
+            font-weight: bold;
+        }
+        .combat-container {
+            border: 2px solid #004d40;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            margin: 10px 0;
+            display: none; /* Initially hidden */
+        }
+        .restart-button {
+            background-color: #e53935;
+        }
+        .restart-button:hover {
+            background-color: #c62828;
+        }
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #263238;
+            color: #eceff1;
+        }
+        .game-container.dark-mode {
+            background-color: #37474f;
+            border: 2px solid #90a4ae;
+        }
+        .status.dark-mode {
+            background-color: #455a64;
+            border-left: 5px solid #b0bec5;
+        }
+        #game-text.dark-mode {
+            border: 1px solid #90a4ae;
+            background-color: #546e7a;
+        }
+        .button.dark-mode {
+            background-color: #546e7a;
+        }
+        .button.dark-mode:hover {
+            background-color: #304f50;
+        }
+        .combat-container.dark-mode {
+            background-color: #455a64;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>The Kingdom of Bruick (v2)</h1>
+        <p>Welcome to the Kingdom of Bruick! Find treasure for gold and train for XP!</p>
+        <p><b>After each event, use the buttons below. The fight ends in one turn with the boss. Enjoy your adventure!</b></p>
+        
+        <div class="status" id="statusDisplay">
+            <p>Player: <span id="player-name">Unknown</span>, Age: <span id="player-age">0</span></p>
+            <p>Level: <span id="level">1</span>, XP: <span id="xp">0</span></p>
+            <p>HP: <span id="hp">25</span></p>
+            <p>Gold: <span id="gold">50</span></p>
+            <p>Healing Potions: <span id="healing-potions">1</span></p>
+        </div>
+        
+        <div id="game-text">What will you do?</div>
+        
+        <div class="button-container">
+            <button class="button" id="shopButton">Visit Shop</button>
+            <button class="button" id="adventureButton">Adventure</button>
+        </div>
+        
+        <div class="combat-container" id="combatButtons">
+            <button class="button" id="attackButton">Attack</button>
+            <button class="button" id="escapeButton">Escape</button>
+            <button class="button" id="usePotionButton">Use Healing Potion</button>
+        </div>
+
+        <div id="shopDisplay"></div>
+        <button class="button restart-button" id="restartButton" style="display: none;">Restart Game</button>
+        <button class="button" id="toggleModeButton">Toggle Light/Dark Mode</button>
+    </div>
+
+    <script>
+        let playerStats = {
+            hp: 25,
+            maxHp: 25,
+            gold: 50,
+            healingPotions: 1,
+            level: 1,
+            xp: 0,
+            nextLevelXp: 10
+        };
+
+        const events = [
+            { type: "treasure", gold: 10 },
+            { type: "treasure", gold: 20 },
+            { type: "training", xp: 5 },
+            { type: "training", xp: 10 }
+        ];
+
+        const enemies = [
+            { name: "Goblin", hp: 15, attackDamage: [2, 5], gold: 10, xp: 3 },
+            { name: "Skeleton", hp: 20, attackDamage: [3, 6], gold: 15, xp: 5 },
+            { name: "Orc", hp: 25, attackDamage: [4, 8], gold: 20, xp: 7 }
+        ];
+
+        const boss = {
+            name: "The Evil Sorcerer",
+            hp: 40,
+            attackDamage: [3, 5],
+            gold: 50,
+            xp: 20
+        };
+
+        const playerNames = [
+            "Eldrin", "Aria", "Thorne", "Fiona", "Milo", 
+            "Lyra", "Jasper", "Elena", "Finn", "Seraphina"
+        ];
+
+        let playerName = "";
+        let playerAge = 0;
+        let currentEnemy = null; 
+        let inCombat = false; 
+        let isGameOver = false;
+
+        document.getElementById('adventureButton').onclick = adventure;
+        document.getElementById('shopButton').onclick = visitShop;
+        document.getElementById('restartButton').onclick = restartGame;
+        document.getElementById('toggleModeButton').onclick = toggleDarkMode;
+
+        function initGame() {
+            // Initialize player details
+            playerName = playerNames[Math.floor(Math.random() * playerNames.length)];
+            playerAge = Math.floor(Math.random() * 60) + 18; // Random age 18-78
+            playerStats.hp = playerStats.maxHp;
+            playerStats.xp = 0;
+            playerStats.gold = 50;
+            updateDisplay();
+            isGameOver = false;
+            document.getElementById('restartButton').style.display = 'none';
+            document.getElementById('combatButtons').style.display = 'none';
+        }
+
+        function adventure() {
+            if (inCombat || isGameOver) return;
+            let event = events[Math.floor(Math.random() * events.length)];
+            if (event.type === "treasure") {
+                playerStats.gold += event.gold;
+                document.getElementById('game-text').innerText = `You found ${event.gold} gold!`;
+            } else if (event.type === "training") {
+                playerStats.xp += event.xp;
+                if (playerStats.xp >= playerStats.nextLevelXp) {
+                    playerStats.level++;
+                    playerStats.nextLevelXp += 10; // Leveling up requires more XP
+                    document.getElementById('game-text').innerText = `You leveled up to Level ${playerStats.level}!`;
+                } else {
+                    document.getElementById('game-text').innerText = `You gained ${event.xp} XP!`;
+                }
+            }
+            updateDisplay();
+            startCombat();
+        }
+
+        function startCombat() {
+            inCombat = true;
+            currentEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+            document.getElementById('combatButtons').style.display = 'block';
+            document.getElementById('game-text').innerText = `A wild ${currentEnemy.name} appears! Prepare to fight!`;
+        }
+
+        function updateDisplay() {
+            document.getElementById('player-name').innerText = playerName;
+            document.getElementById('player-age').innerText = playerAge;
+            document.getElementById('level').innerText = playerStats.level;
+            document.getElementById('xp').innerText = playerStats.xp;
+            document.getElementById('hp').innerText = playerStats.hp;
+            document.getElementById('gold').innerText = playerStats.gold;
+            document.getElementById('healing-potions').innerText = playerStats.healingPotions;
+
+            if (playerStats.hp <= 0) {
+                gameOver();
+            }
+        }
+
+        function attack() {
+            const damage = Math.floor(Math.random() * 5) + 3; // Example damage range
+            currentEnemy.hp -= damage;
+            document.getElementById('game-text').innerText = `You dealt ${damage} damage to the ${currentEnemy.name}!`;
+            if (currentEnemy.hp <= 0) {
+                winCombat();
+            } else {
+                enemyAttack();
+            }
+        }
+
+        function enemyAttack() {
+            const damage = Math.floor(Math.random() * currentEnemy.attackDamage[1]) + currentEnemy.attackDamage[0];
+            playerStats.hp -= damage;
+            document.getElementById('game-text').innerText += `\nThe ${currentEnemy.name} dealt ${damage} damage to you!`;
+            updateDisplay();
+        }
+
+        function winCombat() {
+            document.getElementById('game-text').innerText += `\nYou defeated the ${currentEnemy.name}!`;
+            playerStats.gold += currentEnemy.gold;
+            playerStats.xp += currentEnemy.xp;
+            updateDisplay();
+            endCombat();
+        }
+
+        function endCombat() {
+            inCombat = false;
+            document.getElementById('combatButtons').style.display = 'none';
+        }
+
+        function useHealingPotion() {
+            if (playerStats.healingPotions > 0) {
+                playerStats.hp += 10; // Heal for 10 HP
+                playerStats.healingPotions -= 1;
+                document.getElementById('game-text').innerText = `You used a healing potion!`;
+                updateDisplay();
+                enemyAttack(); // Enemy attacks after you heal
+            } else {
+                alert("No healing potions left!");
+            }
+        }
+
+        function visitShop() {
+            // Implementation of shop logic
+            document.getElementById('shopDisplay').innerText = "Welcome to the shop!";
+            document.getElementById('shopDisplay').style.display = 'block';
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            inCombat = false;
+            document.getElementById('game-text').innerText = "Game Over! You have fallen in battle.";
+            document.getElementById('combatButtons').style.display = 'none';
+            document.getElementById('restartButton').style.display = 'block';
+        }
+
+        function restartGame() {
+            playerStats.hp = 25;
+            playerStats.maxHp = 25;
+            playerStats.gold = 50;
+            playerStats.healingPotions = 1;
+            playerStats.level = 1;
+            playerStats.xp = 0;
+            playerStats.nextLevelXp = 10;
+            isGameOver = false;
+            inCombat = false;
+            updateDisplay();
+            initGame();
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle("dark-mode");
+            document.querySelectorAll('.game-container').forEach(el => el.classList.toggle("dark-mode"));
+            document.querySelectorAll('.status').forEach(el => el.classList.toggle("dark-mode"));
+            document.querySelectorAll('#game-text').forEach(el => el.classList.toggle("dark-mode"));
+            document.querySelectorAll('.combat-container').forEach(el => el.classList.toggle("dark-mode"));
+            document.querySelectorAll('.button').forEach(el => el.classList.toggle("dark-mode"));
+        }
+        document.getElementById('attackButton').onclick = attack;
+document.getElementById('escapeButton').onclick = escapeCombat;
+document.getElementById('usePotionButton').onclick = useHealingPotion;
+
+function attack() {
+    if (!inCombat || isGameOver) return; // Ensure combat is active
+    const damage = Math.floor(Math.random() * 5) + 3; // Randomly determine damage
+    currentEnemy.hp -= damage;
+    document.getElementById('game-text').innerText = `You dealt ${damage} damage to the ${currentEnemy.name}!`;
+
+    if (currentEnemy.hp <= 0) {
+        winCombat();
+    } else {
+        enemyAttack();
+    }
+}
+
+function escapeCombat() {
+    if (!inCombat || isGameOver) return; // Ensure combat is active
+    document.getElementById('game-text').innerText = `You escaped from the ${currentEnemy.name}!`;
+    endCombat();
+}
+
+function enemyAttack() {
+    if (isGameOver) return; // Ensure game is not over
+    const damage = Math.floor(Math.random() * currentEnemy.attackDamage[1]) + currentEnemy.attackDamage[0];
+    playerStats.hp -= damage;
+    document.getElementById('game-text').innerText += `\nThe ${currentEnemy.name} dealt ${damage} damage to you!`;
+    updateDisplay(); // Update the player status
+
+    if (playerStats.hp <= 0) {
+        gameOver(); // Check for game over state
+    }
+}
+
+function winCombat() {
+    document.getElementById('game-text').innerText += `\nYou defeated the ${currentEnemy.name}!`;
+    playerStats.gold += currentEnemy.gold;
+    playerStats.xp += currentEnemy.xp;
+    updateDisplay();
+    endCombat();
+}
+
+function endCombat() {
+    inCombat = false;
+    document.getElementById('combatButtons').style.display = 'none';
+}
+
+function useHealingPotion() {
+    if (playerStats.healingPotions > 0 && playerStats.hp < playerStats.maxHp) {
+        playerStats.hp += 10; // Heal for 10 HP
+        if (playerStats.hp > playerStats.maxHp) playerStats.hp = playerStats.maxHp; // Prevent overhealing
+        playerStats.healingPotions -= 1;
+        document.getElementById('game-text').innerText = `You used a healing potion!`;
+        updateDisplay();
+
+        enemyAttack(); // The enemy attacks after you heal
+    } else {
+        alert("No healing potions left or already at max HP!");
+    }
+}
+function visitShop() {
+    document.getElementById('shopDisplay').innerText = "Welcome to the shop! You can buy Healing Potions for 20 gold each.\n" + 
+                                                        `Current Gold: ${playerStats.gold}\n` +
+                                                        `Healing Potions: ${playerStats.healingPotions}`;
+    
+    const shopContent = document.createElement('div');
+    const buyPotionButton = document.createElement('button');
+    buyPotionButton.className = 'button';
+    buyPotionButton.innerText = "Buy Healing Potion (20 Gold)";
+    buyPotionButton.onclick = buyPotion;
+
+    shopContent.appendChild(buyPotionButton);
+    document.getElementById('shopDisplay').appendChild(shopContent);
+    document.getElementById('shopDisplay').style.display = 'block';
+}
+
+function buyPotion() {
+    const potionCost = 20;
+    if (playerStats.gold >= potionCost) {
+        playerStats.gold -= potionCost; // Deduct gold
+        playerStats.healingPotions += 1; // Increase potion count
+        document.getElementById('game-text').innerText = "You bought a Healing Potion!";
+        updateDisplay();
+    } else {
+        alert("You don't have enough gold to buy a Healing Potion!");
+    }
+}
+function visitShop() {
+    document.getElementById('shopDisplay').innerText = "Welcome to the shop! You can buy Healing Potions for 20 gold each.\n" + 
+                                                        `Current Gold: ${playerStats.gold}\n` +
+                                                        `Healing Potions: ${playerStats.healingPotions}`;
+    
+    const shopContent = document.createElement('div');
+    const buyPotionButton = document.createElement('button');
+    buyPotionButton.className = 'button';
+    buyPotionButton.innerText = "Buy Healing Potion (20 Gold)";
+    buyPotionButton.onclick = buyPotion;
+
+    shopContent.appendChild(buyPotionButton);
+    document.getElementById('shopDisplay').appendChild(shopContent);
+    document.getElementById('shopDisplay').style.display = 'block';
+}
+function buyPotion() {
+    const potionCost = 20;
+    if (playerStats.gold >= potionCost) {
+        playerStats.gold -= potionCost; // Deduct gold
+        playerStats.healingPotions += 1; // Increase potion count
+        document.getElementById('game-text').innerText = "You bought a Healing Potion!";
+        updateDisplay();
+    } else {
+        alert("You don't have enough gold to buy a Healing Potion!");
+    }
+}
+function visitShop() {
+    // Clear previous shop display content
+    const shopDisplay = document.getElementById('shopDisplay');
+    shopDisplay.innerHTML = ""; // Clear existing content
+
+    // Create shop content
+    shopDisplay.innerText = "Welcome to the shop! You can buy Healing Potions for 20 gold each.\n" + 
+                            `Current Gold: ${playerStats.gold}\n` +
+                            `Healing Potions: ${playerStats.healingPotions}`;
+    
+    const shopContent = document.createElement('div');
+    
+    const buyPotionButton = document.createElement('button');
+    buyPotionButton.className = 'button';
+    buyPotionButton.innerText = "Buy Healing Potion (20 Gold)";
+    buyPotionButton.onclick = buyPotion;
+
+    const closeShopButton = document.createElement('button');
+    closeShopButton.className = 'button';
+    closeShopButton.innerText = "Close Shop";
+    closeShopButton.onclick = closeShop; // Add event listener to close shop
+
+    shopContent.appendChild(buyPotionButton);
+    shopContent.appendChild(closeShopButton); // Add the close button to the shop
+    shopDisplay.appendChild(shopContent);
+    shopDisplay.style.display = 'block'; // Show the shop
+}
+
+function closeShop() {
+    document.getElementById('shopDisplay').style.display = 'none'; // Hide the shop
+    document.getElementById('game-text').innerText = "You have closed the shop."; // Provide feedback
+}
+        // Initialize the game on load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
