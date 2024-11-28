@@ -26,11 +26,3 @@
 2. Battle enemies to earn rewards and new spells.
 3. Use spells strategically to defeat tougher foes.
 4. Progress through the kingdom and enjoy your adventure!
-
----
-
-## 💻 Installation
-
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/hoimanner/the-kingdom-of-bruick.git
