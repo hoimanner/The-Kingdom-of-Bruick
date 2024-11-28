@@ -33,4 +33,4 @@
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/the-kingdom-of-bruick.git
+   git clone https://github.com/hoimanner/the-kingdom-of-bruick.git
